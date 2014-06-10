@@ -1,0 +1,5 @@
+av_time:
+    resource: "@AvTimeBundle/Controller/"
+    type:     annotation
+    prefix:   /
+
