@@ -60,6 +60,13 @@ class ApiController extends Controller
      */
     public function readAction(Request $request)
     {
+        $data = json_decode($request->getContent(), true);
+        $em = $this->getDoctrine()->getManager();
+        $entryRepo = $em->getRepository('AvTimeBundle:Entry');
+
+        $commit = $entryRepo->getLastCommitForBranchAndProject($data['branch'], $data['project'])->getQuery()->getResult();
+
+        error_log($commit->getId());
 
     }
 }
