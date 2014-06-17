@@ -60,13 +60,29 @@ class ApiController extends Controller
      */
     public function readAction(Request $request)
     {
+        $return = "";
         $data = json_decode($request->getContent(), true);
         $em = $this->getDoctrine()->getManager();
         $entryRepo = $em->getRepository('AvTimeBundle:Entry');
 
-        $commit = $entryRepo->getLastCommitForBranchAndProject($data['branch'], $data['project'])->getQuery()->getResult();
+        $commit = $entryRepo->getLastCommitForBranchAndProject($data['branch'], $data['project'])->getQuery()->getOneOrNullResult();
 
-        error_log($commit->getId());
+        if (!$commit) {
+            return false;
+        }
+
+        $entries = (array) $entryRepo->getEntriesSinceCommit($commit)->getQuery()->getResult();
+        $totalTime = 0;
+        foreach ($entries as $key => $entry) {
+            if (array_key_exists($key+1, $entries)) {
+                if ($entry->getTime() - $entries[$key+1]->getTime() <= 15) {
+                    $totalTime += $entry->getTime() - $entries[$key+1]->getTime();
+                }
+            }
+        }
+        $return .= " #time " . gmdate("H\h i\m s\s", $totalTime);
+        // time worked on this commit
+        return $return;
 
     }
 }
