@@ -6,6 +6,7 @@ use AppVentus\TimeBundle\Entity\Entry;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -50,7 +51,6 @@ class ApiController extends Controller
 
         // error_log(print_r($request->getUri(), true));
         // error_log(print_r($request->getMethod(), true));
-
         return new Response('', 201);
     }
 
@@ -60,29 +60,35 @@ class ApiController extends Controller
      */
     public function readAction(Request $request)
     {
-        $return = "";
         $data = json_decode($request->getContent(), true);
+
         $em = $this->getDoctrine()->getManager();
         $entryRepo = $em->getRepository('AvTimeBundle:Entry');
 
         $commit = $entryRepo->getLastCommitForBranchAndProject($data['branch'], $data['project'])->getQuery()->getOneOrNullResult();
 
         if (!$commit) {
-            return false;
+            $commit = new Entry();
+            $commit->setBranch($data['branch']);
+            $commit->setProject($data['project']);
+            $commit->setTime(0);
         }
-
         $entries = (array) $entryRepo->getEntriesSinceCommit($commit)->getQuery()->getResult();
+
         $totalTime = 0;
         foreach ($entries as $key => $entry) {
             if (array_key_exists($key+1, $entries)) {
-                if ($entry->getTime() - $entries[$key+1]->getTime() <= 15) {
+                if ($entry->getTime() - $entries[$key+1]->getTime() <= 15 * 60) {
                     $totalTime += $entry->getTime() - $entries[$key+1]->getTime();
                 }
             }
         }
-        $return .= " #time " . gmdate("H\h i\m s\s", $totalTime);
-        // time worked on this commit
-        return $return;
 
+        // time worked on this commit
+        if ($totalTime > 0) {
+            return new JsonResponse(array('response' => "#time " . round($totalTime / 60) . "m"));
+        }
+
+        return new JsonResponse(array('response' => ""));
     }
 }
