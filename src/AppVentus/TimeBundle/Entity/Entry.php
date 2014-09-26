@@ -77,6 +77,13 @@ class Entry
      */
     private $type = 'entry';
 
+    /**
+     * @var string
+     *
+     * @ORM\ManyToOne(targetEntity="AppVentus\TimeBundle\Entity\User", inversedBy="entries")
+     * @ORM\JoinColumn(name="user_id", referencedColumnName="id", onDelete="SET NULL")
+     */
+    private $user;
 
     /**
      * Get id
@@ -268,6 +275,31 @@ class Entry
     public function setType($type)
     {
         $this->type = $type;
+
+        return $this;
+    }
+
+    /**
+     * Get user
+     *
+     * @return string
+     */
+    public function getUser()
+    {
+        return $this->user;
+    }
+
+    /**
+     * Set user
+     *
+     * @param string $user
+     *
+     * @return $this
+     */
+    public function setUser($user)
+    {
+        $this->user = $user;
+
         return $this;
     }
 }

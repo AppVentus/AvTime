@@ -21,9 +21,16 @@ class ApiController extends Controller
      */
     public function writeAction(Request $request)
     {
+        $headers = apache_request_headers();
+        $apiKey = str_replace("Basic ", "", $headers["Authorization"]);
         $data = json_decode($request->getContent(), true);
 
         $entry = new Entry();
+
+        $em = $this->getDoctrine()->getManager();
+        $user = $em->getRepository('AppVentus\TimeBundle\Entity\User')->findOneByApiKey($apiKey);
+
+        $entry->setUser($user);
 
         foreach ($data as $key => $value) {
             if (method_exists($entry, "set" . ucfirst($key))) {
@@ -45,7 +52,6 @@ class ApiController extends Controller
             error_log("WAKATIME: unknown data: " . print_r($data, true));
         }
 
-        $em = $this->getDoctrine()->getManager();
         $em->persist($entry);
         $em->flush();
 
@@ -60,12 +66,17 @@ class ApiController extends Controller
      */
     public function readAction(Request $request)
     {
+
+        $headers = apache_request_headers();
+        $apiKey = str_replace("Basic ", "", $headers["Authorization"]);
         $data = json_decode($request->getContent(), true);
 
         $em = $this->getDoctrine()->getManager();
+        $user = $em->getRepository('AppVentus\TimeBundle\Entity\User')->findOneByApiKey($apiKey);
+
         $entryRepo = $em->getRepository('AvTimeBundle:Entry');
 
-        $commit = $entryRepo->getLastCommitForBranchAndProject($data['branch'], $data['project'])->getQuery()->getOneOrNullResult();
+        $commit = $entryRepo->getLastCommitForBranchAndProjectAndUser($data['branch'], $data['project'], $user)->getQuery()->getOneOrNullResult();
 
         if (!$commit) {
             $commit = new Entry();
@@ -73,7 +84,7 @@ class ApiController extends Controller
             $commit->setProject($data['project']);
             $commit->setTime(0);
         }
-        $entries = (array) $entryRepo->getEntriesSinceCommit($commit)->getQuery()->getResult();
+        $entries = (array) $entryRepo->getEntriesSinceCommitForUser($commit, $user)->getQuery()->getResult();
 
         $totalTime = 0;
         foreach ($entries as $key => $entry) {
