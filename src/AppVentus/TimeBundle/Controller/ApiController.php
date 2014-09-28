@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @Route("/api")
@@ -22,6 +23,10 @@ class ApiController extends Controller
     public function writeAction(Request $request)
     {
         $headers = apache_request_headers();
+
+        if (empty($headers["Authorization"])) {
+            throw new AccessDeniedHttpException();
+        }
         $apiKey = base64_decode(str_replace("Basic ", "", $headers["Authorization"]));
         $data = json_decode($request->getContent(), true);
 
@@ -30,6 +35,9 @@ class ApiController extends Controller
         $em = $this->getDoctrine()->getManager();
         $user = $em->getRepository('AppVentus\TimeBundle\Entity\User')->findOneByApiKey($apiKey);
 
+        if (!$user) {
+            throw new AccessDeniedHttpException();
+        }
         $entry->setUser($user);
 
         foreach ($data as $key => $value) {
@@ -68,12 +76,19 @@ class ApiController extends Controller
     {
 
         $headers = apache_request_headers();
+
+        if (empty($headers["Authorization"])) {
+            throw new AccessDeniedHttpException();
+        }
         $apiKey = base64_decode(str_replace("Basic ", "", $headers["Authorization"]));
         $data = json_decode($request->getContent(), true);
 
         $em = $this->getDoctrine()->getManager();
         $user = $em->getRepository('AppVentus\TimeBundle\Entity\User')->findOneByApiKey($apiKey);
 
+        if (!$user) {
+            throw new AccessDeniedHttpException();
+        }
         $entryRepo = $em->getRepository('AvTimeBundle:Entry');
 
         $commit = $entryRepo->getLastCommitForBranchAndProjectAndUser($data['branch'], $data['project'], $user)->getQuery()->getOneOrNullResult();
