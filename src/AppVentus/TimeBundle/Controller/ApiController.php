@@ -22,7 +22,7 @@ class ApiController extends Controller
     public function writeAction(Request $request)
     {
         $headers = apache_request_headers();
-        $apiKey = str_replace("Basic ", "", $headers["Authorization"]);
+        $apiKey = base64_decode(str_replace("Basic ", "", $headers["Authorization"]));
         $data = json_decode($request->getContent(), true);
 
         $entry = new Entry();
@@ -68,7 +68,7 @@ class ApiController extends Controller
     {
 
         $headers = apache_request_headers();
-        $apiKey = str_replace("Basic ", "", $headers["Authorization"]);
+        $apiKey = base64_decode(str_replace("Basic ", "", $headers["Authorization"]));
         $data = json_decode($request->getContent(), true);
 
         $em = $this->getDoctrine()->getManager();
